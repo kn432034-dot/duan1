@@ -1,0 +1,176 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated Google user profile and linked EduLink classroom role",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "photoURL": { "type": "string", "maxLength": 1000 },
+        "linkedRole": { "type": "string", "enum": ["TEACHER", "SUBJECT_TEACHER", "PARENT", "NONE"], "maxLength": 32 },
+        "linkedSubject": { "type": "string", "maxLength": 80 },
+        "linkedStudentId": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email", "displayName", "photoURL", "createdAt", "updatedAt"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Student profile, parent access password, conduct, and overall GPA",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "maxLength": 120 },
+        "studentCode": { "type": "string", "maxLength": 32 },
+        "avatar": { "type": "string", "maxLength": 1000 },
+        "gender": { "type": "string", "enum": ["Nam", "Nữ"], "maxLength": 16 },
+        "dob": { "type": "string", "maxLength": 32 },
+        "parentPassword": { "type": "string", "maxLength": 64 },
+        "conduct": { "type": "string", "enum": ["Tốt", "Khá", "Trung bình"], "maxLength": 32 },
+        "overallGPA": { "type": "number" }
+      },
+      "required": ["id", "name", "studentCode", "avatar", "gender", "dob", "parentPassword", "conduct", "overallGPA"]
+    },
+    "SubjectScoreRecord": {
+      "title": "SubjectScoreRecord",
+      "description": "Collection of subject scores and teacher remarks for a student",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "scores": { "type": "array" }
+      },
+      "required": ["studentId", "scores"]
+    },
+    "WeeklyReport": {
+      "title": "WeeklyReport",
+      "description": "Weekly attendance, weak points, evaluation, and parent feedback per student and week",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "weekNumber": { "type": "number" },
+        "totalPeriods": { "type": "number" },
+        "excusedAbsences": { "type": "number" },
+        "unexcusedAbsences": { "type": "number" },
+        "lateArrivals": { "type": "number" },
+        "weakPoints": { "type": "array" },
+        "learningStatus": { "type": "string", "maxLength": 64 },
+        "conductStatus": { "type": "string", "maxLength": 64 },
+        "teacherComment": { "type": "string", "maxLength": 3000 },
+        "parentFeedback": { "type": "string", "maxLength": 3000 },
+        "parentFeedbackDate": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 },
+        "updatedByEmail": { "type": "string", "maxLength": 254 },
+        "updatedByName": { "type": "string", "maxLength": 120 }
+      },
+      "required": ["studentId", "weekNumber", "totalPeriods", "excusedAbsences", "unexcusedAbsences", "lateArrivals", "weakPoints", "learningStatus", "conductStatus", "teacherComment", "updatedAt"]
+    },
+    "WeeklySchedule": {
+      "title": "WeeklySchedule",
+      "description": "Class weekly timetable schedule",
+      "type": "object",
+      "properties": {
+        "weekNumber": { "type": "number" },
+        "startDate": { "type": "string", "maxLength": 64 },
+        "endDate": { "type": "string", "maxLength": 64 },
+        "days": { "type": "array" }
+      },
+      "required": ["weekNumber", "startDate", "endDate", "days"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Class announcement posted by homeroom teacher",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 5000 },
+        "date": { "type": "string", "maxLength": 64 },
+        "author": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 64 },
+        "isPinned": { "type": "boolean" }
+      },
+      "required": ["id", "title", "content", "date", "author", "category"]
+    },
+    "TeacherSettings": {
+      "title": "TeacherSettings",
+      "description": "Homeroom teacher and class metadata",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 120 },
+        "code": { "type": "string", "maxLength": 32 },
+        "className": { "type": "string", "maxLength": 64 },
+        "schoolYear": { "type": "string", "maxLength": 32 },
+        "email": { "type": "string", "maxLength": 254 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "subject": { "type": "string", "maxLength": 120 },
+        "password": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["name", "code", "className", "schoolYear", "email", "phone", "subject"]
+    },
+    "SubjectTeachersSettings": {
+      "title": "SubjectTeachersSettings",
+      "description": "Subject teachers list and access passwords",
+      "type": "object",
+      "properties": {
+        "teachers": { "type": "array" }
+      },
+      "required": ["teachers"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable edit audit trail for scores, remarks, reports, and passwords",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "actorUid": { "type": "string", "maxLength": 128 },
+        "actorEmail": { "type": "string", "maxLength": 254 },
+        "actorName": { "type": "string", "maxLength": 120 },
+        "actorRole": { "type": "string", "enum": ["TEACHER", "SUBJECT_TEACHER", "PARENT"], "maxLength": 32 },
+        "action": { "type": "string", "maxLength": 64 },
+        "targetType": { "type": "string", "enum": ["SUBJECT_SCORE", "WEEKLY_REPORT", "STUDENT_PASSWORD", "SUBJECT_PASSWORD", "TEACHER_PASSWORD", "ANNOUNCEMENT", "SCHEDULE"], "maxLength": 32 },
+        "targetLabel": { "type": "string", "maxLength": 200 },
+        "summary": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "displayTime": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "actorUid", "actorEmail", "actorName", "actorRole", "action", "targetType", "targetLabel", "summary", "createdAt", "displayTime"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Private Google user profile and saved role linkage, accessible only by the authenticated owner"
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Class student profiles"
+    },
+    "/subject_scores/{studentId}": {
+      "schema": { "$ref": "#/entities/SubjectScoreRecord" },
+      "description": "Subject scores and remarks per student"
+    },
+    "/weekly_reports/{reportId}": {
+      "schema": { "$ref": "#/entities/WeeklyReport" },
+      "description": "Weekly reports keyed by studentId and weekNumber"
+    },
+    "/weekly_schedules/{scheduleId}": {
+      "schema": { "$ref": "#/entities/WeeklySchedule" },
+      "description": "Weekly schedules keyed by week number"
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Class announcements"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/TeacherSettings" },
+      "description": "Class and teacher configuration"
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Immutable edit audit trail"
+    }
+  }
+}

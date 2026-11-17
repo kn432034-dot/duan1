@@ -1,0 +1,240 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'photoURL', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'linkedRole', 'linkedSubject', 'linkedStudentId', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() > 0 && data.uid.size() <= 128
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 254
+        && data.displayName is string && data.displayName.size() <= 120
+        && data.photoURL is string && data.photoURL.size() <= 1000
+        && data.createdAt is string && data.createdAt.size() > 0 && data.createdAt.size() <= 64
+        && data.updatedAt is string && data.updatedAt.size() > 0 && data.updatedAt.size() <= 64
+        && (!('linkedRole' in data) || data.linkedRole == null || (data.linkedRole is string && data.linkedRole in ['TEACHER', 'SUBJECT_TEACHER', 'PARENT', 'NONE']))
+        && (!('linkedSubject' in data) || data.linkedSubject == null || (data.linkedSubject is string && data.linkedSubject.size() <= 80))
+        && (!('linkedStudentId' in data) || data.linkedStudentId == null || (data.linkedStudentId is string && data.linkedStudentId.size() <= 64));
+    }
+
+    function isValidStudent(data) {
+      return data.keys().hasAll(['id', 'name', 'studentCode', 'avatar', 'gender', 'dob', 'parentPassword', 'conduct', 'overallGPA'])
+        && data.keys().hasOnly(['id', 'name', 'studentCode', 'avatar', 'gender', 'dob', 'parentPassword', 'conduct', 'overallGPA'])
+        && isValidId(data.id)
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 120
+        && data.studentCode is string && data.studentCode.size() > 0 && data.studentCode.size() <= 32
+        && data.avatar is string && data.avatar.size() <= 1000
+        && data.gender is string && data.gender in ['Nam', 'Nữ']
+        && data.dob is string && data.dob.size() <= 32
+        && data.parentPassword is string && data.parentPassword.size() > 0 && data.parentPassword.size() <= 64
+        && data.conduct is string && data.conduct in ['Tốt', 'Khá', 'Trung bình']
+        && data.overallGPA is number && data.overallGPA >= 0 && data.overallGPA <= 10;
+    }
+
+    function isValidSubjectScoreRecord(data) {
+      return data.keys().hasAll(['studentId', 'scores'])
+        && data.keys().hasOnly(['studentId', 'scores'])
+        && isValidId(data.studentId)
+        && data.scores is list
+        && data.scores.size() <= 30
+        && (data.scores.size() == 0 || data.scores[0] is map);
+    }
+
+    function isValidWeeklyReport(data) {
+      return data.keys().hasAll(['studentId', 'weekNumber', 'totalPeriods', 'excusedAbsences', 'unexcusedAbsences', 'lateArrivals', 'weakPoints', 'learningStatus', 'conductStatus', 'teacherComment', 'updatedAt'])
+        && data.keys().hasOnly(['studentId', 'weekNumber', 'totalPeriods', 'excusedAbsences', 'unexcusedAbsences', 'lateArrivals', 'weakPoints', 'learningStatus', 'conductStatus', 'teacherComment', 'parentFeedback', 'parentFeedbackDate', 'updatedAt', 'updatedByEmail', 'updatedByName'])
+        && isValidId(data.studentId)
+        && data.weekNumber is number && data.weekNumber >= 1 && data.weekNumber <= 52
+        && data.totalPeriods is number && data.totalPeriods >= 0 && data.totalPeriods <= 100
+        && data.excusedAbsences is number && data.excusedAbsences >= 0 && data.excusedAbsences <= 100
+        && data.unexcusedAbsences is number && data.unexcusedAbsences >= 0 && data.unexcusedAbsences <= 100
+        && data.lateArrivals is number && data.lateArrivals >= 0 && data.lateArrivals <= 100
+        && data.weakPoints is list && data.weakPoints.size() <= 50
+        && (data.weakPoints.size() == 0 || data.weakPoints[0] is map)
+        && data.learningStatus is string && data.learningStatus.size() <= 64
+        && data.conductStatus is string && data.conductStatus.size() <= 64
+        && data.teacherComment is string && data.teacherComment.size() <= 3000
+        && data.updatedAt is string && data.updatedAt.size() <= 64
+        && (!('parentFeedback' in data) || (data.parentFeedback is string && data.parentFeedback.size() <= 3000))
+        && (!('parentFeedbackDate' in data) || (data.parentFeedbackDate is string && data.parentFeedbackDate.size() <= 64))
+        && (!('updatedByEmail' in data) || (data.updatedByEmail is string && data.updatedByEmail.size() <= 254))
+        && (!('updatedByName' in data) || (data.updatedByName is string && data.updatedByName.size() <= 120));
+    }
+
+    function isValidWeeklySchedule(data) {
+      return data.keys().hasAll(['weekNumber', 'startDate', 'endDate', 'days'])
+        && data.keys().hasOnly(['weekNumber', 'startDate', 'endDate', 'days'])
+        && data.weekNumber is number && data.weekNumber >= 1 && data.weekNumber <= 52
+        && data.startDate is string && data.startDate.size() <= 64
+        && data.endDate is string && data.endDate.size() <= 64
+        && data.days is list && data.days.size() <= 7
+        && (data.days.size() == 0 || data.days[0] is map);
+    }
+
+    function isValidAnnouncement(data) {
+      return data.keys().hasAll(['id', 'title', 'content', 'date', 'author', 'category'])
+        && data.keys().hasOnly(['id', 'title', 'content', 'date', 'author', 'category', 'isPinned'])
+        && isValidId(data.id)
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 5000
+        && data.date is string && data.date.size() <= 64
+        && data.author is string && data.author.size() <= 120
+        && data.category is string && data.category.size() <= 64
+        && (!('isPinned' in data) || data.isPinned is bool);
+    }
+
+    function isValidTeacherSettings(data) {
+      return data.keys().hasAll(['name', 'code', 'className', 'schoolYear', 'email', 'phone', 'subject'])
+        && data.keys().hasOnly(['name', 'code', 'className', 'schoolYear', 'email', 'phone', 'subject', 'password'])
+        && data.name is string && data.name.size() <= 120
+        && data.code is string && data.code.size() <= 32
+        && data.className is string && data.className.size() <= 64
+        && data.schoolYear is string && data.schoolYear.size() <= 32
+        && data.email is string && data.email.size() <= 254
+        && data.phone is string && data.phone.size() <= 32
+        && data.subject is string && data.subject.size() <= 120
+        && (!('password' in data) || (data.password is string && data.password.size() > 0 && data.password.size() <= 64));
+    }
+
+    function isValidSubjectTeachersSettings(data) {
+      return data.keys().hasAll(['teachers'])
+        && data.keys().hasOnly(['teachers'])
+        && data.teachers is list
+        && data.teachers.size() <= 30
+        && (data.teachers.size() == 0 || data.teachers[0] is map);
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['id', 'actorUid', 'actorEmail', 'actorName', 'actorRole', 'action', 'targetType', 'targetLabel', 'summary', 'createdAt', 'displayTime'])
+        && data.keys().hasOnly(['id', 'actorUid', 'actorEmail', 'actorName', 'actorRole', 'action', 'targetType', 'targetLabel', 'summary', 'createdAt', 'displayTime'])
+        && isValidId(data.id)
+        && data.actorUid is string && data.actorUid.size() > 0 && data.actorUid.size() <= 128
+        && data.actorEmail is string && data.actorEmail.size() <= 254
+        && data.actorName is string && data.actorName.size() > 0 && data.actorName.size() <= 120
+        && data.actorRole is string && data.actorRole in ['TEACHER', 'SUBJECT_TEACHER', 'PARENT']
+        && data.action is string && data.action.size() > 0 && data.action.size() <= 64
+        && data.targetType is string && data.targetType in ['SUBJECT_SCORE', 'WEEKLY_REPORT', 'STUDENT_PASSWORD', 'SUBJECT_PASSWORD', 'TEACHER_PASSWORD', 'ANNOUNCEMENT', 'SCHEDULE']
+        && data.targetLabel is string && data.targetLabel.size() > 0 && data.targetLabel.size() <= 200
+        && data.summary is string && data.summary.size() > 0 && data.summary.size() <= 500
+        && data.createdAt is string && data.createdAt.size() > 0 && data.createdAt.size() <= 64
+        && data.displayTime is string && data.displayTime.size() > 0 && data.displayTime.size() <= 64;
+    }
+
+    // Connection health check
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+
+    // Legacy authenticated user profiles remain strictly private to owner
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId) && isVerifiedEmail();
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isVerifiedEmail()
+        && isValidUser(incoming())
+        && incoming().uid == request.auth.uid;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isVerifiedEmail()
+        && isValidUser(incoming())
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'linkedRole', 'linkedSubject', 'linkedStudentId', 'updatedAt']);
+      allow delete: if isValidId(userId) && isOwner(userId) && isVerifiedEmail();
+    }
+
+    // Classroom collections: validated via role codes/passwords in app + strict schema & ID checks
+    match /students/{studentId} {
+      allow get: if isValidId(studentId);
+      allow list: if request.time != null;
+      allow create: if isValidId(studentId) && isValidStudent(incoming()) && incoming().id == studentId;
+      allow update: if isValidId(studentId) && isValidStudent(incoming()) && incoming().id == existing().id;
+      allow delete: if false;
+    }
+
+    match /subject_scores/{studentId} {
+      allow get: if isValidId(studentId);
+      allow list: if request.time != null;
+      allow create: if isValidId(studentId) && isValidSubjectScoreRecord(incoming()) && incoming().studentId == studentId;
+      allow update: if isValidId(studentId) && isValidSubjectScoreRecord(incoming()) && incoming().studentId == existing().studentId;
+      allow delete: if false;
+    }
+
+    match /weekly_reports/{reportId} {
+      allow get: if isValidId(reportId);
+      allow list: if request.time != null;
+      allow create: if isValidId(reportId) && isValidWeeklyReport(incoming());
+      allow update: if isValidId(reportId) && isValidWeeklyReport(incoming()) && incoming().studentId == existing().studentId && incoming().weekNumber == existing().weekNumber;
+      allow delete: if false;
+    }
+
+    match /weekly_schedules/{scheduleId} {
+      allow get: if isValidId(scheduleId);
+      allow list: if request.time != null;
+      allow create: if isValidId(scheduleId) && isValidWeeklySchedule(incoming());
+      allow update: if isValidId(scheduleId) && isValidWeeklySchedule(incoming()) && incoming().weekNumber == existing().weekNumber;
+      allow delete: if false;
+    }
+
+    match /announcements/{announcementId} {
+      allow get: if isValidId(announcementId);
+      allow list: if request.time != null;
+      allow create: if isValidId(announcementId) && isValidAnnouncement(incoming()) && incoming().id == announcementId;
+      allow update: if isValidId(announcementId) && isValidAnnouncement(incoming()) && incoming().id == existing().id;
+      allow delete: if isValidId(announcementId);
+    }
+
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if false;
+      allow create: if isValidId(settingId) && (
+        (settingId == 'teacher' && isValidTeacherSettings(incoming())) ||
+        (settingId == 'subject_teachers' && isValidSubjectTeachersSettings(incoming()))
+      );
+      allow update: if isValidId(settingId) && (
+        (settingId == 'teacher' && isValidTeacherSettings(incoming())) ||
+        (settingId == 'subject_teachers' && isValidSubjectTeachersSettings(incoming()))
+      );
+      allow delete: if false;
+    }
+
+    // Immutable audit logs (cannot alter or delete history)
+    match /audit_logs/{logId} {
+      allow get: if isValidId(logId);
+      allow list: if request.time != null;
+      allow create: if isValidId(logId) && isValidAuditLog(incoming()) && incoming().id == logId;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
